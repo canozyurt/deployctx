@@ -1,0 +1,70 @@
+#!/bin/bash
+
+fullpath=$(realpath $BASH_SOURCE)
+export DEPLOYCTX_PATH=$(dirname $fullpath)
+
+deployctx(){
+	for command in fzf docker; do
+		if ! command -v $command  &> /dev/null
+		then
+    			echo "Missing $command"
+    			return 1
+		fi
+	done
+
+	if [[ "$1" == "build" ]]; then
+		__deployctx_build || return 1
+		return 0
+	fi
+
+	tools=("kolla-ansible" "ceph-ansible")
+	tool="$(printf "%s\n" ${tools[@]} | fzf)"
+	version="$(ls --hide=global* $DEPLOYCTX_PATH/$tool | fzf)"
+	alias $tool="__deployctx_$tool"
+	echo "Switched to $tool/$version"
+}
+
+__deployctx_check_image(){
+	if [[ "$(docker images -q deployctx-$tool:$version 2> /dev/null)" == "" ]]; then
+		echo "First build the image with deployctx build"
+		return 1
+	fi
+}
+
+__deployctx_build(){
+	if [[ -z "$tool" || -z "$version" ]]; then
+		echo "Nothing to build"
+		return 1
+	fi
+
+        docker build -t deployctx-$tool:$version -f $DEPLOYCTX_PATH/$tool/$version/Dockerfile .
+}
+
+__deployctx_kolla-ansible(){
+	__deployctx_check_image || return 1
+
+	if [[ ! -f $DEPLOYCTX_PATH/config/$tool/$version ]]; then
+		mkdir -p $DEPLOYCTX_PATH/config/$tool/$version
+	fi
+
+	docker run -it --rm --network=host  \
+		-v $DEPLOYCTX_PATH/config/$tool/$version/:/etc/kolla \
+		-v $DEPLOYCTX_PATH/inventory:/etc/ansible/inventory \
+		deployctx-$tool:$version \
+		kolla-ansible -i /app/inventory -i /etc/ansible/inventory $@
+
+}
+
+__deployctx_ceph-ansible(){
+	__deployctx_check_image || return 1
+
+	if [[ ! -f $DEPLOYCTX_PATH/config/$tool/$version ]]; then
+		mkdir -p $DEPLOYCTX_PATH/config/$tool/$version
+	fi
+
+	docker run -it --rm --network=host  \
+		-v $DEPLOYCTX_PATH/config/$tool/$version/:/app/ceph-ansible/group_vars \
+		-v $DEPLOYCTX_PATH/inventory:/etc/ansible/inventory \
+		deployctx-$tool:$version \
+	       	ansible-playbook -i /etc/ansible/inventory $@
+}
