@@ -10,7 +10,7 @@ RUN pip3 install git+https://opendev.org/openstack/kolla-ansible@stable/yoga
 
 RUN kolla-ansible install-deps
 
-COPY kolla-ansible/yoga/inventory .
+COPY kolla-ansible/yoga/inventory inventory/kolla
 
 COPY kolla-ansible/global-entrypoint.sh /entrypoint.sh
 

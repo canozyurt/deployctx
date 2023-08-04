@@ -37,7 +37,7 @@ __deployctx_build(){
 		return 1
 	fi
 
-        docker build -t deployctx-$tool:$version -f $DEPLOYCTX_PATH/$tool/$version/Dockerfile .
+        docker build --network=host -t deployctx-$tool:$version -f $DEPLOYCTX_PATH/$tool/$version/Dockerfile .
 }
 
 __deployctx_kolla-ansible(){
@@ -49,9 +49,11 @@ __deployctx_kolla-ansible(){
 
 	docker run -it --rm --network=host  \
 		-v $DEPLOYCTX_PATH/config/$tool/$version/:/etc/kolla \
-		-v $DEPLOYCTX_PATH/inventory:/etc/ansible/inventory \
+		-v $DEPLOYCTX_PATH/inventory:/app/inventory/inv \
+		-v ~/.ssh:/tmp/.ssh \
+		--dns 127.0.0.1 \
 		deployctx-$tool:$version \
-		kolla-ansible -i /app/inventory -i /etc/ansible/inventory $@
+		kolla-ansible -i /app/inventory $@
 
 }
 
