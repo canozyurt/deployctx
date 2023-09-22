@@ -57,7 +57,7 @@ __deployctx_kolla-ansible(){
 		-v $DEPLOYCTX_PATH/config/kolla-ansible/$DEPLOYCTX_KOLLA_ANSIBLE_VERSION/:/etc/kolla \
 		-v $DEPLOYCTX_PATH/inventory:/app/inventory/inv \
 		-v ~/.ssh:/tmp/.ssh \
-		--dns 127.0.0.1 \
+		$DEPLOYCTX_KOLLA_ANSIBLE_EXTRA \
 		deployctx-kolla-ansible:$DEPLOYCTX_KOLLA_ANSIBLE_VERSION \
 		kolla-ansible -i /app/inventory $@
 
@@ -73,6 +73,8 @@ __deployctx_ceph-ansible(){
 	docker run -it --rm --network=host  \
 		-v $DEPLOYCTX_PATH/config/ceph-ansible/$DEPLOYCTX_CEPH_ANSIBLE_VERSION/:/app/ceph-ansible/group_vars \
 		-v $DEPLOYCTX_PATH/inventory:/etc/ansible/inventory \
+		-v ~/.ssh:/tmp/.ssh \
+		$DEPLOYCTX_CEPH_ANSIBLE_EXTRA \
 		deployctx-ceph-ansible:$DEPLOYCTX_CEPH_ANSIBLE_VERSION \
 	       	ansible-playbook -i /etc/ansible/inventory $@
 }
